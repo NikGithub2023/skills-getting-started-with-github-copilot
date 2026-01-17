@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${details.participants
                   .map(
                     (p) =>
-                      `<li class="participant-item"><span class="participant-email">${p}</span></li>`
+                      `<li class="participant-item"><span class="participant-email">${p}</span><span class="delete-icon" title="Unregister" data-activity="${name}" data-email="${p}">&#128465;</span></li>`
                   )
                   .join("")}
               </ul>
@@ -60,6 +60,29 @@ document.addEventListener("DOMContentLoaded", () => {
         option.textContent = name;
         activitySelect.appendChild(option);
       });
+
+      // Add event listeners for delete icons
+      document.querySelectorAll('.delete-icon').forEach(icon => {
+        icon.addEventListener('click', async function() {
+          const activity = this.getAttribute('data-activity');
+          const email = this.getAttribute('data-email');
+          if (confirm(`Unregister ${email} from ${activity}?`)) {
+            try {
+              const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, {
+                method: 'POST'
+              });
+              const result = await response.json();
+              if (response.ok) {
+                fetchActivities();
+              } else {
+                alert(result.detail || 'Failed to unregister.');
+              }
+            } catch (err) {
+              alert('Failed to unregister.');
+            }
+          }
+        });
+      });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
       console.error("Error fetching activities:", error);
@@ -87,6 +110,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Refresh activities list after successful signup
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
